@@ -27,7 +27,7 @@ export const models: Record<ModelType, ModelQuota> = reactive({
     fiveHourRemainingPct: 75,
     fiveHourRefreshSeconds: 1 * 3600 + 1 * 60, // 1h 1m
     fiveHourTotalSeconds: 5 * 3600,
-    isIdle: false, // Active
+    isIdle: false,
     totalTokensUsedToday: 42800,
   },
   claude: {
@@ -50,10 +50,10 @@ export const models: Record<ModelType, ModelQuota> = reactive({
     weeklyRemainingPct: 66,
     weeklyRefreshSeconds: 1 * 86400 + 5 * 3600, // 1d 5h
     weeklyTotalSeconds: 7 * 86400,
-    fiveHourRemainingPct: 100, // 100% full
+    fiveHourRemainingPct: 100,
     fiveHourRefreshSeconds: 5 * 3600,
     fiveHourTotalSeconds: 5 * 3600,
-    isIdle: true, // 100% idle, sand doesn't drop
+    isIdle: true,
     totalTokensUsedToday: 18400,
   },
   gpt: {
@@ -128,6 +128,68 @@ export const heartbeatConfig = reactive<HeartbeatConfig>({
 let timerInterval: number | null = null;
 let heartbeatInterval: number | null = null;
 
+// Parse URL Query parameters & Hash for instant PWA configuration
+export function parseUrlParameters() {
+  try {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+
+    // 1. Display Mode (?mode=crystal | hourglass)
+    const modeParam = params.get('mode');
+    if (modeParam === 'crystal' || modeParam === 'hourglass') {
+      displayMode.value = modeParam;
+    }
+
+    // 2. Target Model (?model=gemini | claude | gpt | custom)
+    const modelParam = params.get('model') as ModelType;
+    if (modelParam && models[modelParam]) {
+      selectedModelId.value = modelParam;
+    }
+
+    // 3. Model-specific overrides e.g. ?gemini=89,75 (weekly, 5hour) or ?weekly=89&5h=75
+    const target = models[selectedModelId.value];
+    if (params.has('weekly')) {
+      target.weeklyRemainingPct = Math.min(100, Math.max(0, parseInt(params.get('weekly') || '100')));
+    }
+    if (params.has('5h') || params.has('fiveHour')) {
+      target.fiveHourRemainingPct = Math.min(100, Math.max(0, parseInt(params.get('5h') || params.get('fiveHour') || '100')));
+    }
+    if (params.has('weeklySec')) {
+      target.weeklyRefreshSeconds = parseInt(params.get('weeklySec') || '0');
+    }
+    if (params.has('5hSec') || params.has('fiveHourSec')) {
+      target.fiveHourRefreshSeconds = parseInt(params.get('5hSec') || params.get('fiveHourSec') || '0');
+    }
+    if (params.has('idle')) {
+      target.isIdle = params.get('idle') === '1' || params.get('idle') === 'true';
+    }
+
+    // 4. Custom API endpoint (?api=https://...&key=sk-...)
+    if (params.has('api')) {
+      heartbeatConfig.apiEndpoint = params.get('api') || '';
+    }
+    if (params.has('key')) {
+      heartbeatConfig.apiKey = params.get('key') || '';
+    }
+  } catch (e) {
+    console.warn('URL parameter parsing failed:', e);
+  }
+}
+
+// Generate shareable PWA URL containing current status
+export function generateShareableUrl(): string {
+  const url = new URL(window.location.origin + window.location.pathname);
+  const m = currentModel.value;
+  url.searchParams.set('model', m.id);
+  url.searchParams.set('mode', displayMode.value);
+  url.searchParams.set('weekly', m.weeklyRemainingPct.toString());
+  url.searchParams.set('5h', m.fiveHourRemainingPct.toString());
+  url.searchParams.set('weeklySec', m.weeklyRefreshSeconds.toString());
+  url.searchParams.set('5hSec', m.fiveHourRefreshSeconds.toString());
+  url.searchParams.set('idle', m.isIdle ? '1' : '0');
+  return url.toString();
+}
+
 // Format seconds into "X天 Y小時 Z分" or "Y小時 Z分 W秒"
 export function formatDuration(seconds: number): string {
   if (seconds <= 0) return '已刷新 (100%)';
@@ -148,6 +210,8 @@ export function formatDuration(seconds: number): string {
 
 // Start live tick countdown
 export function initQuotaStore() {
+  parseUrlParameters();
+
   if (timerInterval) return;
 
   // Real-time second countdown ticker
@@ -194,7 +258,7 @@ export function startHeartbeat() {
   }, heartbeatConfig.intervalSeconds * 1000);
 }
 
-// Manually trigger a quick usage simulation (e.g. prompt cost test)
+// Manually trigger a quick usage simulation
 export function simulateUsage(modelId: ModelType, costPct: number = 3) {
   const model = models[modelId];
   model.fiveHourRemainingPct = Math.max(0, model.fiveHourRemainingPct - costPct);

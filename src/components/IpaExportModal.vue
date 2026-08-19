@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { X, Apple, Download, Terminal, Smartphone, Check, ExternalLink } from 'lucide-vue-next';
+import { generateShareableUrl } from '../stores/quotaStore';
+import { X, Apple, Download, Terminal, Smartphone, Check, Share2, Link } from 'lucide-vue-next';
 
 defineProps<{
   isOpen: boolean;
@@ -10,12 +11,20 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const copied = ref(false);
+const copiedIpa = ref(false);
+const copiedPwaUrl = ref(false);
 
 const copyCommand = (cmd: string) => {
   navigator.clipboard.writeText(cmd);
-  copied.value = true;
-  setTimeout(() => (copied.value = false), 2000);
+  copiedIpa.value = true;
+  setTimeout(() => (copiedIpa.value = false), 2000);
+};
+
+const copyShareUrl = () => {
+  const url = generateShareableUrl();
+  navigator.clipboard.writeText(url);
+  copiedPwaUrl.value = true;
+  setTimeout(() => (copiedPwaUrl.value = false), 2000);
 };
 </script>
 
@@ -29,7 +38,7 @@ const copyCommand = (cmd: string) => {
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center gap-2">
           <Apple class="w-5 h-5 text-white" />
-          <h2 class="text-base font-bold text-white">iPhone 13 mini IPA 打包</h2>
+          <h2 class="text-base font-bold text-white">PWA 網址 & IPA 安裝</h2>
         </div>
         <button @click="emit('close')" class="p-1 rounded-full text-slate-400 hover:text-white">
           <X class="w-5 h-5" />
@@ -37,7 +46,26 @@ const copyCommand = (cmd: string) => {
       </div>
 
       <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
-        <p>本專案已配置完整 **Capacitor iOS App** 與自動打包腳本，可直接產出適用於 iPhone 13 mini 的 `.ipa` 檔案！</p>
+        
+        <!-- PWA URL & Shortcut Sharing -->
+        <div class="glass-panel p-3 rounded-2xl border border-blue-500/30 bg-blue-950/20 space-y-2">
+          <div class="font-bold text-blue-300 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <Share2 class="w-4 h-4" />
+              <span>PWA 網址參數讀取與分享</span>
+            </div>
+            <button
+              @click="copyShareUrl"
+              class="px-2 py-0.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] flex items-center gap-1"
+            >
+              <component :is="copiedPwaUrl ? Check : Link" class="w-3 h-3" />
+              <span>{{ copiedPwaUrl ? '已複製網址' : '複製專屬網址' }}</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-300">
+            支援透過 URL 參數直接加載算力狀態（例如：<code>?model=gemini&5h=75&weekly=89</code>）。複製後可在 iPhone 13 mini Safari「加入主畫面」直接離線使用！
+          </p>
+        </div>
 
         <!-- Method 1: Local Script -->
         <div class="glass-panel p-3 rounded-2xl border border-white/10 space-y-2">
@@ -48,7 +76,7 @@ const copyCommand = (cmd: string) => {
           <div class="bg-black/60 p-2 rounded-xl font-mono text-[11px] text-slate-300 flex items-center justify-between">
             <code>npm run package:ipa</code>
             <button @click="copyCommand('npm run package:ipa')" class="text-blue-400 hover:text-blue-300 text-xs">
-              {{ copied ? '已複製' : '複製' }}
+              {{ copiedIpa ? '已複製' : '複製' }}
             </button>
           </div>
           <p class="text-[11px] text-slate-400">執行後會在專案根目錄產出 <code>ai-hourglass.ipa</code>，可直接透過 Sideloadly / AltStore / TrollStore 側載安裝至 iPhone 13 mini。</p>
@@ -56,7 +84,7 @@ const copyCommand = (cmd: string) => {
 
         <!-- Method 2: PWA / Standalone Safari -->
         <div class="glass-panel p-3 rounded-2xl border border-white/10 space-y-2">
-          <div class="font-bold text-blue-300 flex items-center gap-1.5">
+          <div class="font-bold text-emerald-300 flex items-center gap-1.5">
             <Smartphone class="w-4 h-4" />
             <span>方法 2：iOS Safari 免簽名直裝 (PWA)</span>
           </div>
@@ -77,7 +105,7 @@ const copyCommand = (cmd: string) => {
         @click="emit('close')"
         class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-2xl transition-all"
       >
-        我知道了
+        確定
       </button>
     </div>
   </div>
