@@ -1,7 +1,23 @@
+# Dependencies & Outputs
 node_modules
 dist
 dist-ssr
-*.local
 temp_payload
-.DS_Store
+*.ipa
+
+# Environment & Secrets
+.env
+.env.*
+*.local
+*.pem
+*.key
+*.p12
+*.cer
+*.crt
+*.mobileprovision
+*.keystore
+
+# Logs & System Files
 *.log
+.DS_Store
+Thumbs.db
