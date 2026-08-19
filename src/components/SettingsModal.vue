@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { currentModel, heartbeatConfig, userAccounts, currentAccountEmail, switchAccount, addAccount } from '../stores/quotaStore';
-import { X, Sliders, Shield, Key, Check, Mail, Plus } from 'lucide-vue-next';
+import FaceIdModal from './FaceIdModal.vue';
+import { X, Sliders, Shield, Key, Check, Mail, Plus, ScanFace } from 'lucide-vue-next';
 
 defineProps<{
   isOpen: boolean;
@@ -12,6 +13,19 @@ const emit = defineEmits<{
 }>();
 
 const newEmailInput = ref('');
+const isFaceIdOpen = ref(false);
+const pendingEmail = ref('');
+
+const handleSwitchAccount = (email: string) => {
+  if (email === currentAccountEmail.value) return;
+  pendingEmail.value = email;
+  isFaceIdOpen.value = true;
+};
+
+const handleFaceIdSuccess = (email: string) => {
+  switchAccount(email);
+  isFaceIdOpen.value = false;
+};
 
 const handleAddEmail = () => {
   if (newEmailInput.value.trim()) {
@@ -40,23 +54,29 @@ const handleAddEmail = () => {
 
       <!-- Account Management Section -->
       <div class="space-y-2">
-        <h3 class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-          <Mail class="w-4 h-4 text-indigo-400" />
-          <span>綁定登入信箱切換</span>
+        <h3 class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <Mail class="w-4 h-4 text-indigo-400" />
+            <span>綁定登入信箱 (Face ID 保護)</span>
+          </span>
+          <ScanFace class="w-3.5 h-3.5 text-emerald-400" />
         </h3>
 
         <div class="space-y-1.5">
           <button
             v-for="acc in userAccounts"
             :key="acc.email"
-            @click="switchAccount(acc.email)"
+            @click="handleSwitchAccount(acc.email)"
             class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all text-xs border"
             :class="currentAccountEmail === acc.email
               ? 'bg-blue-600/30 border-blue-500 text-white'
               : 'border-white/5 bg-slate-900/40 text-slate-300 hover:bg-white/5'"
           >
-            <span class="font-mono">{{ acc.email }}</span>
-            <span v-if="currentAccountEmail === acc.email" class="text-[10px] text-blue-300 font-semibold">當前使用中</span>
+            <div class="flex items-center gap-1.5 truncate">
+              <span class="font-mono">{{ acc.email }}</span>
+              <span class="text-[9px] text-emerald-400 font-mono">● FaceID</span>
+            </div>
+            <span v-if="currentAccountEmail === acc.email" class="text-[10px] text-blue-300 font-semibold shrink-0">當前使用中</span>
           </button>
         </div>
 
@@ -166,5 +186,13 @@ const handleAddEmail = () => {
         <span>儲存並關閉</span>
       </button>
     </div>
+
+    <!-- Face ID Modal -->
+    <FaceIdModal
+      :isOpen="isFaceIdOpen"
+      :targetEmail="pendingEmail"
+      @success="handleFaceIdSuccess"
+      @cancel="isFaceIdOpen = false"
+    />
   </div>
 </template>
