@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { currentModel, heartbeatConfig, userAccounts, currentAccountEmail, switchAccount, addAccount } from '../stores/quotaStore';
+import { currentModel, heartbeatConfig, userAccounts, currentAccountEmail, switchAccount, addAccount, maskEmail, isEmailRevealed, toggleEmailReveal } from '../stores/quotaStore';
 import FaceIdModal from './FaceIdModal.vue';
-import { X, Sliders, Shield, Key, Check, Mail, Plus, ScanFace } from 'lucide-vue-next';
+import { X, Sliders, Shield, Key, Check, Mail, Plus, ScanFace, Eye, EyeOff } from 'lucide-vue-next';
 
 defineProps<{
   isOpen: boolean;
@@ -45,7 +45,7 @@ const handleAddEmail = () => {
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div class="flex items-center gap-2">
           <Sliders class="w-5 h-5 text-blue-400" />
-          <h2 class="text-base font-bold text-white">設定 & 帳號管理</h2>
+          <h2 class="text-base font-bold text-white">設定 & 帳號安全</h2>
         </div>
         <button @click="emit('close')" class="p-1 rounded-full text-slate-400 hover:text-white">
           <X class="w-5 h-5" />
@@ -54,13 +54,22 @@ const handleAddEmail = () => {
 
       <!-- Account Management Section -->
       <div class="space-y-2">
-        <h3 class="text-xs font-semibold text-slate-300 flex items-center justify-between">
-          <span class="flex items-center gap-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
             <Mail class="w-4 h-4 text-indigo-400" />
             <span>綁定登入信箱 (Face ID 保護)</span>
           </span>
-          <ScanFace class="w-3.5 h-3.5 text-emerald-400" />
-        </h3>
+          <div class="flex items-center gap-1.5">
+            <button
+              @click="toggleEmailReveal"
+              class="text-slate-400 hover:text-slate-200 p-0.5 rounded"
+              :title="isEmailRevealed ? '隱藏完整信箱' : '顯示完整信箱'"
+            >
+              <component :is="isEmailRevealed ? EyeOff : Eye" class="w-3.5 h-3.5" />
+            </button>
+            <ScanFace class="w-3.5 h-3.5 text-emerald-400" />
+          </div>
+        </div>
 
         <div class="space-y-1.5">
           <button
@@ -73,7 +82,7 @@ const handleAddEmail = () => {
               : 'border-white/5 bg-slate-900/40 text-slate-300 hover:bg-white/5'"
           >
             <div class="flex items-center gap-1.5 truncate">
-              <span class="font-mono">{{ acc.email }}</span>
+              <span class="font-mono">{{ maskEmail(acc.email) }}</span>
               <span class="text-[9px] text-emerald-400 font-mono">● FaceID</span>
             </div>
             <span v-if="currentAccountEmail === acc.email" class="text-[10px] text-blue-300 font-semibold shrink-0">當前使用中</span>
@@ -166,13 +175,13 @@ const handleAddEmail = () => {
           <input
             type="text"
             v-model="heartbeatConfig.apiEndpoint"
-            placeholder="https://api.openai.com/v1 或自訂代理"
+            placeholder="自訂 API 代理端點 (可留空)"
             class="w-full bg-slate-900/80 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
           <input
             type="password"
             v-model="heartbeatConfig.apiKey"
-            placeholder="sk-xxxxxxxxxx (可選 Token)"
+            placeholder="•••••••••••••••• (安全加密存儲，可留空)"
             class="w-full bg-slate-900/80 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>

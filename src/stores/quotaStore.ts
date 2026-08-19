@@ -3,17 +3,34 @@ import type { ModelQuota, ModelType, DisplayMode, HeartbeatConfig, UserAccount }
 
 export const displayMode = ref<DisplayMode>('crystal');
 
+// Privacy Mode: Mask email addresses so only the user with Face ID / eye toggle can reveal
+export const isEmailRevealed = ref<boolean>(false);
+
+export function toggleEmailReveal() {
+  isEmailRevealed.value = !isEmailRevealed.value;
+}
+
+export function maskEmail(email: string): string {
+  if (isEmailRevealed.value) return email;
+  if (!email || !email.includes('@')) return email;
+  const [user, domain] = email.split('@');
+  if (user.length <= 3) {
+    return `${user.charAt(0)}***@${domain}`;
+  }
+  return `${user.slice(0, 3)}***@${domain}`;
+}
+
 // User Accounts (Default: oocai0001@gmail.com & ericlai429@gmail.com)
 export const userAccounts = reactive<UserAccount[]>([
   {
     email: 'oocai0001@gmail.com',
-    name: 'OOCAI Main',
+    name: 'OOCAI 帳號',
     avatarBg: '#3b82f6',
     isDefault: true,
   },
   {
     email: 'ericlai429@gmail.com',
-    name: 'Eric Lai',
+    name: 'Eric 個人帳號',
     avatarBg: '#8b5cf6',
   },
 ]);
@@ -36,7 +53,7 @@ export function addAccount(email: string, name?: string) {
   if (!trimmed || userAccounts.some(a => a.email.toLowerCase() === trimmed)) return;
   userAccounts.push({
     email: trimmed,
-    name: name || trimmed.split('@')[0],
+    name: name || `帳號 ${userAccounts.length + 1}`,
     avatarBg: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
   });
   switchAccount(trimmed);
@@ -61,10 +78,10 @@ export const models: Record<ModelType, ModelQuota> = reactive({
       glow: 'rgba(59, 130, 246, 0.35)',
     },
     weeklyRemainingPct: 89,
-    weeklyRefreshSeconds: 6 * 86400 + 3 * 3600, // 6d 3h
+    weeklyRefreshSeconds: 6 * 86400 + 3 * 3600,
     weeklyTotalSeconds: 7 * 86400,
     fiveHourRemainingPct: 75,
-    fiveHourRefreshSeconds: 1 * 3600 + 1 * 60, // 1h 1m
+    fiveHourRefreshSeconds: 1 * 3600 + 1 * 60,
     fiveHourTotalSeconds: 5 * 3600,
     isIdle: false,
     totalTokensUsedToday: 42800,
@@ -87,7 +104,7 @@ export const models: Record<ModelType, ModelQuota> = reactive({
       glow: 'rgba(234, 88, 12, 0.35)',
     },
     weeklyRemainingPct: 66,
-    weeklyRefreshSeconds: 1 * 86400 + 5 * 3600, // 1d 5h
+    weeklyRefreshSeconds: 1 * 86400 + 5 * 3600,
     weeklyTotalSeconds: 7 * 86400,
     fiveHourRemainingPct: 100,
     fiveHourRefreshSeconds: 5 * 3600,
@@ -167,13 +184,12 @@ export const heartbeatConfig = reactive<HeartbeatConfig>({
 let timerInterval: number | null = null;
 let heartbeatInterval: number | null = null;
 
-// Parse URL Query parameters & Hash for instant PWA configuration
+// Parse URL Query parameters & Hash
 export function parseUrlParameters() {
   try {
     const url = new URL(window.location.href);
     const params = url.searchParams;
 
-    // 0. Account parameter (?account=ericlai429@gmail.com)
     const accountParam = params.get('account');
     if (accountParam) {
       if (!userAccounts.some(a => a.email.toLowerCase() === accountParam.toLowerCase())) {
@@ -188,19 +204,16 @@ export function parseUrlParameters() {
       }
     }
 
-    // 1. Display Mode (?mode=crystal | hourglass)
     const modeParam = params.get('mode');
     if (modeParam === 'crystal' || modeParam === 'hourglass') {
       displayMode.value = modeParam;
     }
 
-    // 2. Target Model (?model=gemini | claude | gpt | custom)
     const modelParam = params.get('model') as ModelType;
     if (modelParam && models[modelParam]) {
       selectedModelId.value = modelParam;
     }
 
-    // 3. Model-specific overrides
     const target = models[selectedModelId.value];
     if (params.has('weekly')) {
       target.weeklyRemainingPct = Math.min(100, Math.max(0, parseInt(params.get('weekly') || '100')));
@@ -218,7 +231,6 @@ export function parseUrlParameters() {
       target.isIdle = params.get('idle') === '1' || params.get('idle') === 'true';
     }
 
-    // 4. Custom API endpoint (?api=https://...&key=sk-...)
     if (params.has('api')) {
       heartbeatConfig.apiEndpoint = params.get('api') || '';
     }
@@ -230,7 +242,7 @@ export function parseUrlParameters() {
   }
 }
 
-// Generate shareable PWA URL containing current status and account
+// Generate shareable PWA URL
 export function generateShareableUrl(): string {
   const url = new URL(window.location.origin + window.location.pathname);
   const m = currentModel.value;
@@ -245,7 +257,6 @@ export function generateShareableUrl(): string {
   return url.toString();
 }
 
-// Format seconds into "X天 Y小時 Z分" or "Y小時 Z分 W秒"
 export function formatDuration(seconds: number): string {
   if (seconds <= 0) return '已刷新 (100%)';
 
@@ -263,16 +274,13 @@ export function formatDuration(seconds: number): string {
   return `${minutes} 分 ${secs} 秒`;
 }
 
-// Start live tick countdown
 export function initQuotaStore() {
   parseUrlParameters();
 
   if (timerInterval) return;
 
-  // Real-time second countdown ticker
   timerInterval = window.setInterval(() => {
     Object.values(models).forEach((model) => {
-      // 5-Hour Countdown
       if (model.fiveHourRefreshSeconds > 0) {
         model.fiveHourRefreshSeconds -= 1;
         if (model.fiveHourRefreshSeconds <= 0) {
@@ -282,7 +290,6 @@ export function initQuotaStore() {
         }
       }
 
-      // Weekly Countdown
       if (model.weeklyRefreshSeconds > 0) {
         model.weeklyRefreshSeconds -= 1;
         if (model.weeklyRefreshSeconds <= 0) {
@@ -293,7 +300,6 @@ export function initQuotaStore() {
     });
   }, 1000);
 
-  // Heartbeat ping interval
   startHeartbeat();
 }
 
@@ -304,7 +310,6 @@ export function startHeartbeat() {
     if (!heartbeatConfig.enabled) return;
     
     heartbeatConfig.status = 'syncing';
-    // Simulate real network jitter (25ms - 80ms)
     setTimeout(() => {
       heartbeatConfig.lastHeartbeat = new Date();
       heartbeatConfig.latencyMs = Math.floor(25 + Math.random() * 45);
@@ -313,7 +318,6 @@ export function startHeartbeat() {
   }, heartbeatConfig.intervalSeconds * 1000);
 }
 
-// Manually trigger a quick usage simulation
 export function simulateUsage(modelId: ModelType, costPct: number = 3) {
   const model = models[modelId];
   model.fiveHourRemainingPct = Math.max(0, model.fiveHourRemainingPct - costPct);
@@ -322,7 +326,6 @@ export function simulateUsage(modelId: ModelType, costPct: number = 3) {
   model.totalTokensUsedToday = (model.totalTokensUsedToday || 0) + 1500;
 }
 
-// Toggle Idle state manually
 export function toggleIdle(modelId: ModelType) {
   const model = models[modelId];
   model.isIdle = !model.isIdle;

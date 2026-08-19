@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { userAccounts, currentAccountEmail, switchAccount, addAccount } from '../stores/quotaStore';
+import { userAccounts, currentAccountEmail, switchAccount, addAccount, maskEmail, isEmailRevealed, toggleEmailReveal } from '../stores/quotaStore';
 import FaceIdModal from './FaceIdModal.vue';
-import { User, ChevronDown, Check, Plus, ShieldCheck, ScanFace } from 'lucide-vue-next';
+import { User, ChevronDown, Check, Plus, ShieldCheck, ScanFace, Eye, EyeOff } from 'lucide-vue-next';
 
 const isOpen = ref(false);
 const newEmail = ref('');
@@ -16,7 +16,6 @@ const handleSelect = (email: string) => {
     isOpen.value = false;
     return;
   }
-  // Trigger Face ID authentication for account switch!
   pendingEmail.value = email;
   isOpen.value = false;
   isFaceIdOpen.value = true;
@@ -46,16 +45,19 @@ const handleAddNew = () => {
       class="glass-pill px-2.5 py-1 rounded-full flex items-center gap-1.5 text-xs text-slate-200 hover:text-white transition-all active:scale-95 border border-white/10"
     >
       <div
-        class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase"
+        class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase shrink-0"
         :class="currentAccountEmail.includes('oocai') ? 'bg-blue-600' : 'bg-purple-600'"
       >
         {{ currentAccountEmail.charAt(0) }}
       </div>
-      <span class="font-mono text-[11px] max-w-[120px] truncate">
-        {{ currentAccountEmail }}
+      
+      <!-- Privacy Masked Email -->
+      <span class="font-mono text-[11px] max-w-[115px] truncate">
+        {{ maskEmail(currentAccountEmail) }}
       </span>
-      <ScanFace class="w-3 h-3 text-emerald-400" />
-      <ChevronDown class="w-3 h-3 text-slate-400" />
+
+      <ScanFace class="w-3 h-3 text-emerald-400 shrink-0" />
+      <ChevronDown class="w-3 h-3 text-slate-400 shrink-0" />
     </button>
 
     <!-- Dropdown Menu -->
@@ -72,9 +74,17 @@ const handleAddNew = () => {
       <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center justify-between">
         <span class="flex items-center gap-1">
           <ScanFace class="w-3.5 h-3.5 text-emerald-400" />
-          <span>Face ID 保護登入信箱</span>
+          <span>Face ID 登入帳號</span>
         </span>
-        <ShieldCheck class="w-3 h-3 text-emerald-400" />
+        
+        <!-- Toggle Reveal Eye Button -->
+        <button
+          @click.stop="toggleEmailReveal"
+          class="text-slate-400 hover:text-slate-200 p-0.5 rounded transition-all"
+          :title="isEmailRevealed ? '隱藏完整信箱' : '顯示完整信箱'"
+        >
+          <component :is="isEmailRevealed ? EyeOff : Eye" class="w-3.5 h-3.5" />
+        </button>
       </div>
 
       <!-- Account List -->
@@ -95,7 +105,9 @@ const handleAddNew = () => {
             {{ acc.email.charAt(0).toUpperCase() }}
           </div>
           <div class="truncate">
-            <div class="text-[11px] font-mono font-medium truncate">{{ acc.email }}</div>
+            <div class="text-[11px] font-mono font-medium truncate">
+              {{ maskEmail(acc.email) }}
+            </div>
             <div class="text-[9px] text-slate-400 flex items-center gap-1">
               <span>{{ acc.name }}</span>
               <span class="text-emerald-400 text-[8px] font-mono">● FaceID</span>

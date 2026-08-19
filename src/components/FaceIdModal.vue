@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { authenticateWithFaceId } from '../utils/faceId';
+import { maskEmail } from '../stores/quotaStore';
 import { ScanFace, CheckCircle2, ShieldCheck, XCircle, KeyRound, Sparkles } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -46,7 +47,6 @@ const handleRetry = async () => {
 };
 
 const handleBypassPassword = () => {
-  // Direct Face ID / Passkey Passwordless Override
   scanState.value = 'success';
   setTimeout(() => {
     emit('success', props.targetEmail);
@@ -95,7 +95,7 @@ const handleBypassPassword = () => {
           <span v-else class="text-red-300">請再次對準臉部辨識</span>
         </div>
         <div class="text-xs font-mono text-slate-300 mt-1 truncate max-w-[200px]">
-          {{ targetEmail }}
+          {{ maskEmail(targetEmail) }}
         </div>
         <div class="text-[10px] text-emerald-400/90 mt-0.5 flex items-center justify-center gap-1">
           <Sparkles class="w-3 h-3 text-amber-300" />
