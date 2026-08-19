@@ -2,6 +2,13 @@ export type DisplayMode = 'crystal' | 'hourglass';
 
 export type ModelType = 'gemini' | 'claude' | 'gpt' | 'custom';
 
+export interface UserAccount {
+  email: string;
+  name: string;
+  avatarBg: string;
+  isDefault?: boolean;
+}
+
 export interface ModelQuota {
   id: ModelType;
   name: string;
@@ -31,7 +38,7 @@ export interface ModelQuota {
   fiveHourTotalSeconds: number; // 5 hours = 18000s
   
   // Idle / Active detection
-  isIdle: boolean; // if true, quota is not currently dropping sand
+  isIdle: boolean;
   lastUsedAt?: string;
   totalTokensUsedToday?: number;
 }

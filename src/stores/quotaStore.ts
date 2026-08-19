@@ -1,7 +1,46 @@
 import { reactive, ref, computed } from 'vue';
-import type { ModelQuota, ModelType, DisplayMode, HeartbeatConfig } from '../types';
+import type { ModelQuota, ModelType, DisplayMode, HeartbeatConfig, UserAccount } from '../types';
 
 export const displayMode = ref<DisplayMode>('crystal');
+
+// User Accounts (Default: oocai0001@gmail.com & ericlai429@gmail.com)
+export const userAccounts = reactive<UserAccount[]>([
+  {
+    email: 'oocai0001@gmail.com',
+    name: 'OOCAI Main',
+    avatarBg: '#3b82f6',
+    isDefault: true,
+  },
+  {
+    email: 'ericlai429@gmail.com',
+    name: 'Eric Lai',
+    avatarBg: '#8b5cf6',
+  },
+]);
+
+export const currentAccountEmail = ref<string>('oocai0001@gmail.com');
+
+export const currentAccount = computed(() => {
+  return userAccounts.find(a => a.email === currentAccountEmail.value) || userAccounts[0];
+});
+
+export function switchAccount(email: string) {
+  currentAccountEmail.value = email;
+  try {
+    localStorage.setItem('ai_hourglass_account', email);
+  } catch (e) {}
+}
+
+export function addAccount(email: string, name?: string) {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || userAccounts.some(a => a.email.toLowerCase() === trimmed)) return;
+  userAccounts.push({
+    email: trimmed,
+    name: name || trimmed.split('@')[0],
+    avatarBg: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
+  });
+  switchAccount(trimmed);
+}
 
 export const models: Record<ModelType, ModelQuota> = reactive({
   gemini: {
@@ -134,6 +173,21 @@ export function parseUrlParameters() {
     const url = new URL(window.location.href);
     const params = url.searchParams;
 
+    // 0. Account parameter (?account=ericlai429@gmail.com)
+    const accountParam = params.get('account');
+    if (accountParam) {
+      if (!userAccounts.some(a => a.email.toLowerCase() === accountParam.toLowerCase())) {
+        addAccount(accountParam);
+      } else {
+        switchAccount(accountParam);
+      }
+    } else {
+      const savedAccount = localStorage.getItem('ai_hourglass_account');
+      if (savedAccount && userAccounts.some(a => a.email === savedAccount)) {
+        currentAccountEmail.value = savedAccount;
+      }
+    }
+
     // 1. Display Mode (?mode=crystal | hourglass)
     const modeParam = params.get('mode');
     if (modeParam === 'crystal' || modeParam === 'hourglass') {
@@ -146,7 +200,7 @@ export function parseUrlParameters() {
       selectedModelId.value = modelParam;
     }
 
-    // 3. Model-specific overrides e.g. ?gemini=89,75 (weekly, 5hour) or ?weekly=89&5h=75
+    // 3. Model-specific overrides
     const target = models[selectedModelId.value];
     if (params.has('weekly')) {
       target.weeklyRemainingPct = Math.min(100, Math.max(0, parseInt(params.get('weekly') || '100')));
@@ -176,10 +230,11 @@ export function parseUrlParameters() {
   }
 }
 
-// Generate shareable PWA URL containing current status
+// Generate shareable PWA URL containing current status and account
 export function generateShareableUrl(): string {
   const url = new URL(window.location.origin + window.location.pathname);
   const m = currentModel.value;
+  url.searchParams.set('account', currentAccountEmail.value);
   url.searchParams.set('model', m.id);
   url.searchParams.set('mode', displayMode.value);
   url.searchParams.set('weekly', m.weeklyRemainingPct.toString());

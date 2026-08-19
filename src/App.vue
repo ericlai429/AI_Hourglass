@@ -8,7 +8,8 @@ import HeartbeatIndicator from './components/HeartbeatIndicator.vue';
 import CountdownTimer from './components/CountdownTimer.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import IpaExportModal from './components/IpaExportModal.vue';
-import { Sparkles, Hourglass, Settings, Apple, Zap, RefreshCw } from 'lucide-vue-next';
+import AccountSwitcher from './components/AccountSwitcher.vue';
+import { Sparkles, Hourglass, Settings, Apple, Zap } from 'lucide-vue-next';
 
 const isSettingsOpen = ref(false);
 const isIpaOpen = ref(false);
@@ -25,25 +26,20 @@ onMounted(() => {
     <div class="w-full max-w-[390px] flex flex-col items-center flex-1 justify-between gap-3">
       
       <!-- Top Header Navigation & Action Bar -->
-      <header class="w-full flex items-center justify-between px-2 pt-1">
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md">
+      <header class="w-full flex items-center justify-between px-1 pt-1 gap-2">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md shrink-0">
             <Zap class="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-              <span>AI 算力時鐘</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 font-mono">i13 mini</span>
-            </h1>
-            <div class="text-[10px] text-slate-400 font-mono">{{ currentModel.name }}</div>
-          </div>
+          <!-- Account Switcher Pill (Default: oocai0001@gmail.com & ericlai429@gmail.com) -->
+          <AccountSwitcher />
         </div>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 shrink-0">
           <button
             @click="isIpaOpen = true"
             class="p-2 rounded-xl glass-panel text-slate-300 hover:text-white transition-all active:scale-95"
-            title="下載 / 打包 IPA"
+            title="下載 / 打包 IPA & PWA"
           >
             <Apple class="w-4 h-4" />
           </button>
