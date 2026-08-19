@@ -20,85 +20,85 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Main Container: Centered iPhone 13 mini frame with max-w-[390px] for desktop preview -->
-  <main class="min-h-screen w-full flex flex-col items-center justify-between p-3 pt-safe pb-safe bg-[#060911] text-slate-100 overflow-x-hidden">
+  <!-- Single Page Viewport Optimized for iPhone 13 mini (100dvh strictly fits in 1 screen) -->
+  <main class="h-[100dvh] max-h-[100dvh] w-full flex flex-col items-center justify-between p-2.5 pt-safe pb-safe bg-[#060911] text-slate-100 overflow-hidden select-none">
     
-    <div class="w-full max-w-[390px] flex flex-col items-center flex-1 justify-between gap-3">
+    <div class="w-full max-w-[390px] h-full flex flex-col items-center justify-between gap-1.5 min-h-0">
       
       <!-- Top Header Navigation & Action Bar -->
-      <header class="w-full flex items-center justify-between px-1 pt-1 gap-2">
+      <header class="w-full flex items-center justify-between px-0.5 pt-0.5 gap-1 shrink-0">
         <div class="flex items-center gap-1.5 min-w-0">
-          <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md shrink-0">
-            <Zap class="w-4 h-4 text-white" />
+          <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md shrink-0">
+            <Zap class="w-3.5 h-3.5 text-white" />
           </div>
-          <!-- Account Switcher Pill (Default: oocai0001@gmail.com & ericlai429@gmail.com) -->
+          <!-- Account Switcher Pill -->
           <AccountSwitcher />
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex items-center gap-1 shrink-0">
           <button
             @click="isIpaOpen = true"
-            class="p-2 rounded-xl glass-panel text-slate-300 hover:text-white transition-all active:scale-95"
+            class="p-1.5 rounded-xl glass-panel text-slate-300 hover:text-white transition-all active:scale-95"
             title="下載 / 打包 IPA & PWA"
           >
-            <Apple class="w-4 h-4" />
+            <Apple class="w-3.5 h-3.5" />
           </button>
 
           <button
             @click="isSettingsOpen = true"
-            class="p-2 rounded-xl glass-panel text-slate-300 hover:text-white transition-all active:scale-95"
+            class="p-1.5 rounded-xl glass-panel text-slate-300 hover:text-white transition-all active:scale-95"
             title="設定"
           >
-            <Settings class="w-4 h-4" />
+            <Settings class="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
 
       <!-- Model Category Selector Bar -->
-      <section class="w-full">
+      <section class="w-full shrink-0">
         <ModelSelector />
       </section>
 
       <!-- Mode Switcher Pill (Crystal Ball <--> Dual Hourglass) -->
-      <nav class="glass-pill p-1 rounded-2xl flex items-center justify-center gap-1 w-full max-w-xs shadow-inner">
+      <nav class="glass-pill p-0.5 rounded-xl flex items-center justify-center gap-1 w-full max-w-xs shadow-inner shrink-0">
         <button
           @click="displayMode = 'crystal'"
-          class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+          class="flex-1 py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all"
           :class="displayMode === 'crystal'
             ? 'bg-blue-600 text-white shadow-md'
             : 'text-slate-400 hover:text-slate-200'"
         >
-          <Sparkles class="w-3.5 h-3.5" />
+          <Sparkles class="w-3 h-3" />
           <span>🔮 水晶球藥水</span>
         </button>
 
         <button
           @click="displayMode = 'hourglass'"
-          class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+          class="flex-1 py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all"
           :class="displayMode === 'hourglass'
             ? 'bg-amber-600 text-white shadow-md'
             : 'text-slate-400 hover:text-slate-200'"
         >
-          <Hourglass class="w-3.5 h-3.5" />
+          <Hourglass class="w-3 h-3" />
           <span>⏳ 雙沙漏模式</span>
         </button>
       </nav>
 
       <!-- Center Dynamic Visual Stage -->
-      <section class="w-full flex flex-col items-center justify-center my-auto py-1">
+      <section class="w-full flex flex-col items-center justify-center my-auto shrink-0">
         <transition name="fade" mode="out-in">
           <CrystalBall v-if="displayMode === 'crystal'" key="crystal" />
           <DualHourglass v-else key="hourglass" />
         </transition>
       </section>
 
-      <!-- Detailed Countdown Cards (Visible in Crystal Mode for full details) -->
-      <section v-if="displayMode === 'crystal'" class="w-full flex flex-col items-center">
+      <!-- Detailed Countdown Cards (Visible in Crystal Mode) -->
+      <section v-if="displayMode === 'crystal'" class="w-full flex flex-col items-center shrink-0">
         <CountdownTimer />
       </section>
 
       <!-- Bottom Persistent Heartbeat Monitor Bar -->
-      <footer class="w-full flex flex-col items-center gap-1.5 pb-1">
+      <footer class="w-full flex flex-col items-center gap-1 pb-0.5 shrink-0">
         <HeartbeatIndicator />
       </footer>
 
@@ -113,7 +113,7 @@ onMounted(() => {
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .fade-enter-from {
