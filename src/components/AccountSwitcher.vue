@@ -39,26 +39,41 @@ const handleAddNew = () => {
 
 <template>
   <div class="relative">
-    <!-- Trigger Button -->
-    <button
-      @click="isOpen = !isOpen"
-      class="glass-pill px-2.5 py-1 rounded-full flex items-center gap-1.5 text-xs text-slate-200 hover:text-white transition-all active:scale-95 border border-white/10"
+    <!-- Top Header Trigger Button with Inline Eye Toggle -->
+    <div
+      class="glass-pill px-2 py-0.5 rounded-full flex items-center gap-1 text-xs text-slate-200 border border-white/10"
     >
-      <div
-        class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase shrink-0"
-        :class="currentAccountEmail.includes('oocai') ? 'bg-blue-600' : 'bg-purple-600'"
+      <!-- Clickable Avatar + Email to open Account Menu -->
+      <button
+        @click="isOpen = !isOpen"
+        class="flex items-center gap-1 hover:text-white transition-all active:scale-95"
+        title="切換帳號"
       >
-        {{ currentAccountEmail.charAt(0) }}
-      </div>
-      
-      <!-- Privacy Masked Email -->
-      <span class="font-mono text-[11px] max-w-[115px] truncate">
-        {{ maskEmail(currentAccountEmail) }}
-      </span>
+        <div
+          class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold text-white uppercase shrink-0"
+          :class="currentAccountEmail.includes('oocai') ? 'bg-blue-600' : 'bg-purple-600'"
+        >
+          {{ currentAccountEmail.charAt(0) }}
+        </div>
+        
+        <!-- Privacy Masked Email Text -->
+        <span class="font-mono text-[10px] max-w-[105px] truncate">
+          {{ maskEmail(currentAccountEmail) }}
+        </span>
 
-      <ScanFace class="w-3 h-3 text-emerald-400 shrink-0" />
-      <ChevronDown class="w-3 h-3 text-slate-400 shrink-0" />
-    </button>
+        <ScanFace class="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+        <ChevronDown class="w-2.5 h-2.5 text-slate-400 shrink-0" />
+      </button>
+
+      <!-- Direct Eye Toggle Button in Header -->
+      <button
+        @click.stop="toggleEmailReveal"
+        class="p-0.5 text-slate-400 hover:text-slate-200 transition-all rounded active:scale-90"
+        :title="isEmailRevealed ? '隱藏完整信箱' : '顯示完整信箱'"
+      >
+        <component :is="isEmailRevealed ? EyeOff : Eye" class="w-3 h-3 text-slate-400 hover:text-white" />
+      </button>
+    </div>
 
     <!-- Dropdown Menu -->
     <div
@@ -77,7 +92,7 @@ const handleAddNew = () => {
           <span>Face ID 登入帳號</span>
         </span>
         
-        <!-- Toggle Reveal Eye Button -->
+        <!-- Toggle Reveal Eye Button in Dropdown -->
         <button
           @click.stop="toggleEmailReveal"
           class="text-slate-400 hover:text-slate-200 p-0.5 rounded transition-all"
