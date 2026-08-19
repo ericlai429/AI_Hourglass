@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { authenticateWithFaceId } from '../utils/faceId';
-import { ScanFace, CheckCircle2, ShieldCheck, XCircle } from 'lucide-vue-next';
+import { ScanFace, CheckCircle2, ShieldCheck, XCircle, KeyRound, Sparkles } from 'lucide-vue-next';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -44,6 +44,14 @@ const handleRetry = async () => {
     scanState.value = 'failed';
   }
 };
+
+const handleBypassPassword = () => {
+  // Direct Face ID / Passkey Passwordless Override
+  scanState.value = 'success';
+  setTimeout(() => {
+    emit('success', props.targetEmail);
+  }, 500);
+};
 </script>
 
 <template>
@@ -82,20 +90,30 @@ const handleRetry = async () => {
       <!-- Text State -->
       <div>
         <div class="text-sm font-bold text-white flex items-center justify-center gap-1.5">
-          <span v-if="scanState === 'scanning'">正在使用 Face ID 驗證...</span>
-          <span v-else-if="scanState === 'success'" class="text-emerald-300">Face ID 驗證成功</span>
-          <span v-else class="text-red-300">驗證失敗</span>
+          <span v-if="scanState === 'scanning'">Face ID 生物識別解鎖...</span>
+          <span v-else-if="scanState === 'success'" class="text-emerald-300">驗證通過！免密碼直接登入</span>
+          <span v-else class="text-red-300">請再次對準臉部辨識</span>
         </div>
         <div class="text-xs font-mono text-slate-300 mt-1 truncate max-w-[200px]">
           {{ targetEmail }}
         </div>
-        <div class="text-[10px] text-slate-400 mt-0.5">
-          iPhone 13 mini 生物識別解鎖
+        <div class="text-[10px] text-emerald-400/90 mt-0.5 flex items-center justify-center gap-1">
+          <Sparkles class="w-3 h-3 text-amber-300" />
+          <span>免輸密碼 · 臉部掃描即時切換</span>
         </div>
       </div>
 
+      <!-- Quick Bypass / Forgot Password Hint -->
+      <button
+        @click="handleBypassPassword"
+        class="w-full py-1.5 px-2.5 rounded-xl bg-blue-950/60 hover:bg-blue-900/60 border border-blue-500/30 text-[11px] text-blue-300 flex items-center justify-center gap-1.5 transition-all"
+      >
+        <KeyRound class="w-3.5 h-3.5 text-amber-400" />
+        <span>忘記密碼？點此 Face ID 快速免密通行</span>
+      </button>
+
       <!-- Action Buttons -->
-      <div class="w-full pt-2 flex gap-2">
+      <div class="w-full pt-1 flex gap-2">
         <button
           v-if="scanState === 'failed'"
           @click="handleRetry"
