@@ -35,18 +35,25 @@ export class HourglassRenderer {
   public resize() {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    this.width = rect.width;
-    this.height = rect.height;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    this.ctx.scale(dpr, dpr);
+    const w = rect.width || this.canvas.parentElement?.clientWidth || 150;
+    const h = rect.height || this.canvas.parentElement?.clientHeight || 180;
+
+    this.width = Math.max(10, w);
+    this.height = Math.max(10, h);
+    this.canvas.width = Math.floor(this.width * dpr);
+    this.canvas.height = Math.floor(this.height * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   public start() {
     if (this.animFrameId) return;
     const loop = () => {
-      this.update();
-      this.render();
+      try {
+        this.update();
+        this.render();
+      } catch (err) {
+        console.warn('Sand render error:', err);
+      }
       this.animFrameId = requestAnimationFrame(loop);
     };
     this.animFrameId = requestAnimationFrame(loop);
@@ -60,16 +67,15 @@ export class HourglassRenderer {
   }
 
   private update() {
+    if (this.width < 10 || this.height < 10) return;
+
     const neckX = this.width / 2;
     const neckY = this.height / 2;
     const bottomY = this.height * 0.88;
 
-    // Generate falling sand if NOT idle and there is sand left to drop
-    // (If remainingPct == 100 or isIdle == true, sand doesn't flow!)
     const shouldDrop = !this.isIdle && this.remainingPct < 100 && this.remainingPct > 0;
 
     if (shouldDrop) {
-      // Spawn 1 to 3 particles per frame
       for (let i = 0; i < 2; i++) {
         this.particles.push({
           x: neckX + (Math.random() - 0.5) * 4,
@@ -83,14 +89,12 @@ export class HourglassRenderer {
       }
     }
 
-    // Update existing particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.15; // Gravity
+      p.vy += 0.15;
 
-      // Dynamic pile boundary in bottom bulb
       const usedPct = (100 - this.remainingPct) / 100;
       const pileHeight = (this.height * 0.38) * usedPct;
       const currentBottomLimit = bottomY - pileHeight + Math.abs(p.x - neckX) * 0.4;
@@ -100,13 +104,14 @@ export class HourglassRenderer {
       }
     }
 
-    // Limit maximum active falling particles to prevent lag
     if (this.particles.length > 120) {
       this.particles.splice(0, this.particles.length - 120);
     }
   }
 
   private render() {
+    if (this.width < 10 || this.height < 10) return;
+
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
@@ -117,16 +122,16 @@ export class HourglassRenderer {
     const topBulbY = h * 0.12;
     const neckY = h * 0.5;
     const bottomBulbY = h * 0.88;
-    const bulbRadius = Math.min(w * 0.38, (h * 0.34));
+    const bulbRadius = Math.max(10, Math.min(w * 0.38, (h * 0.34)));
     const neckWidth = 7;
 
     // Draw Glass Outline & Frame
     this.drawHourglassFrame(ctx, cx, topBulbY, neckY, bottomBulbY, bulbRadius, neckWidth);
 
-    // Draw Top Sand (Remaining Quota)
+    // Draw Top Sand
     this.drawTopSand(ctx, cx, topBulbY, neckY, bulbRadius, neckWidth);
 
-    // Draw Bottom Sand (Consumed Quota)
+    // Draw Bottom Sand
     this.drawBottomSand(ctx, cx, neckY, bottomBulbY, bulbRadius, neckWidth);
 
     // Draw Falling Particles
@@ -139,7 +144,7 @@ export class HourglassRenderer {
     }
     ctx.globalAlpha = 1.0;
 
-    // Draw Glass Highlights / Reflections
+    // Draw Glass Highlights
     this.drawGlassReflections(ctx, cx, topBulbY, neckY, bottomBulbY, bulbRadius);
   }
 
@@ -154,7 +159,6 @@ export class HourglassRenderer {
   ) {
     ctx.save();
     
-    // Top & Bottom wooden/metal caps
     ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1.5;
@@ -176,17 +180,11 @@ export class HourglassRenderer {
 
     // Glass Bulb Path
     ctx.beginPath();
-    // Top-left
     ctx.moveTo(cx - r * 0.75, topY);
-    // Curve to neck
     ctx.bezierCurveTo(cx - r * 0.75, neckY * 0.7, cx - neckW, neckY * 0.9, cx - neckW, neckY);
-    // Curve to bottom-left
     ctx.bezierCurveTo(cx - neckW, neckY * 1.1, cx - r * 0.75, bottomY * 0.85, cx - r * 0.75, bottomY);
-    // Bottom arc
     ctx.lineTo(cx + r * 0.75, bottomY);
-    // Curve to neck from bottom-right
     ctx.bezierCurveTo(cx + r * 0.75, bottomY * 0.85, cx + neckW, neckY * 1.1, cx + neckW, neckY);
-    // Curve to top-right
     ctx.bezierCurveTo(cx + neckW, neckY * 0.9, cx + r * 0.75, topY * 0.7, cx + r * 0.75, topY);
     ctx.closePath();
 
@@ -209,7 +207,6 @@ export class HourglassRenderer {
     if (this.remainingPct <= 0) return;
 
     ctx.save();
-    // Clip to top bulb
     ctx.beginPath();
     ctx.moveTo(cx - r * 0.75, topY);
     ctx.bezierCurveTo(cx - r * 0.75, neckY * 0.7, cx - neckW, neckY * 0.9, cx - neckW, neckY);
@@ -218,12 +215,10 @@ export class HourglassRenderer {
     ctx.closePath();
     ctx.clip();
 
-    // Sand level calculation
     const fillRatio = Math.max(0, Math.min(1, this.remainingPct / 100));
     const sandHeight = (neckY - topY) * fillRatio;
     const sandTopY = neckY - sandHeight;
 
-    // Gradient sand
     const grad = ctx.createLinearGradient(0, sandTopY, 0, neckY);
     grad.addColorStop(0, this.secondaryColor);
     grad.addColorStop(1, this.primaryColor);
@@ -231,14 +226,12 @@ export class HourglassRenderer {
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(cx - r, sandTopY);
-    // Slight dip at the center of top sand
     ctx.quadraticCurveTo(cx, sandTopY + (this.isIdle ? 2 : 6), cx + r, sandTopY);
     ctx.lineTo(cx + r, neckY + 10);
     ctx.lineTo(cx - r, neckY + 10);
     ctx.closePath();
     ctx.fill();
 
-    // Sand grain texture / glow
     ctx.fillStyle = this.glowColor;
     ctx.fill();
 
@@ -257,7 +250,6 @@ export class HourglassRenderer {
     if (usedPct <= 0) return;
 
     ctx.save();
-    // Clip to bottom bulb
     ctx.beginPath();
     ctx.moveTo(cx - neckW, neckY);
     ctx.bezierCurveTo(cx - neckW, neckY * 1.1, cx - r * 0.75, bottomY * 0.85, cx - r * 0.75, bottomY);
@@ -278,7 +270,6 @@ export class HourglassRenderer {
     ctx.beginPath();
     ctx.moveTo(cx - r, bottomY + 5);
     ctx.lineTo(cx - r * 0.7, pileTopY + 8);
-    // Center sand cone mound peak
     ctx.quadraticCurveTo(cx, pileTopY - 4, cx + r * 0.7, pileTopY + 8);
     ctx.lineTo(cx + r, bottomY + 5);
     ctx.closePath();
@@ -295,19 +286,18 @@ export class HourglassRenderer {
     bottomY: number,
     r: number
   ) {
+    if (r <= 0) return;
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
 
-    // Left curved specular highlight (top bulb)
     ctx.beginPath();
-    ctx.arc(cx - r * 0.45, (topY + neckY) / 2, r * 0.3, Math.PI * 0.8, Math.PI * 1.25);
+    ctx.arc(cx - r * 0.45, (topY + neckY) / 2, Math.max(1, r * 0.3), Math.PI * 0.8, Math.PI * 1.25);
     ctx.stroke();
 
-    // Left curved specular highlight (bottom bulb)
     ctx.beginPath();
-    ctx.arc(cx - r * 0.45, (neckY + bottomY) / 2, r * 0.3, Math.PI * 0.8, Math.PI * 1.25);
+    ctx.arc(cx - r * 0.45, (neckY + bottomY) / 2, Math.max(1, r * 0.3), Math.PI * 0.8, Math.PI * 1.25);
     ctx.stroke();
 
     ctx.restore();

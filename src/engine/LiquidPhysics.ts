@@ -35,18 +35,26 @@ export class CrystalBallRenderer {
   public resize() {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    this.width = rect.width;
-    this.height = rect.height;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    this.ctx.scale(dpr, dpr);
+    const w = rect.width || this.canvas.parentElement?.clientWidth || 260;
+    const h = rect.height || this.canvas.parentElement?.clientHeight || 260;
+    
+    this.width = Math.max(10, w);
+    this.height = Math.max(10, h);
+    
+    this.canvas.width = Math.floor(this.width * dpr);
+    this.canvas.height = Math.floor(this.height * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   public start() {
     if (this.animFrameId) return;
     const loop = () => {
-      this.update();
-      this.render();
+      try {
+        this.update();
+        this.render();
+      } catch (err) {
+        console.warn('Render loop error:', err);
+      }
       this.animFrameId = requestAnimationFrame(loop);
     };
     this.animFrameId = requestAnimationFrame(loop);
@@ -60,19 +68,18 @@ export class CrystalBallRenderer {
   }
 
   private update() {
-    // Wave speed depends on idle state
+    if (this.width < 10 || this.height < 10) return;
+
     const speed = this.isIdle ? 0.02 : 0.045;
     this.waveOffset += speed;
 
     const cx = this.width / 2;
     const cy = this.height / 2;
-    const radius = Math.min(this.width, this.height) * 0.42;
+    const radius = Math.max(10, Math.min(this.width, this.height) * 0.42);
 
-    // Fluid height level
     const fillRatio = Math.max(0.02, Math.min(0.98, this.remainingPct / 100));
     const liquidTopY = cy + radius - (radius * 2 * fillRatio);
 
-    // Spawn bubbles in liquid
     if (Math.random() < (this.isIdle ? 0.2 : 0.4) && this.remainingPct > 5) {
       const bubbleX = cx + (Math.random() - 0.5) * radius * 1.4;
       this.bubbles.push({
@@ -85,14 +92,12 @@ export class CrystalBallRenderer {
       });
     }
 
-    // Update bubbles
     for (let i = this.bubbles.length - 1; i >= 0; i--) {
       const b = this.bubbles[i];
       b.y -= b.vy;
       b.x += b.vx;
       b.alpha -= 0.005;
 
-      // Pop at liquid surface or fade out
       if (b.y <= liquidTopY || b.alpha <= 0) {
         this.bubbles.splice(i, 1);
       }
@@ -104,6 +109,8 @@ export class CrystalBallRenderer {
   }
 
   private render() {
+    if (this.width < 10 || this.height < 10) return;
+
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
@@ -112,7 +119,7 @@ export class CrystalBallRenderer {
 
     const cx = w / 2;
     const cy = h / 2;
-    const radius = Math.min(w, h) * 0.42;
+    const radius = Math.max(10, Math.min(w, h) * 0.42);
 
     // Draw Outer Glow Aura
     this.drawAura(ctx, cx, cy, radius);
@@ -127,7 +134,7 @@ export class CrystalBallRenderer {
     ctx.clip();
 
     // Dark Orb Interior Gradient
-    const orbBg = ctx.createRadialGradient(cx, cy - radius * 0.3, radius * 0.1, cx, cy, radius);
+    const orbBg = ctx.createRadialGradient(cx, cy - radius * 0.3, Math.max(1, radius * 0.1), cx, cy, radius);
     orbBg.addColorStop(0, '#101827');
     orbBg.addColorStop(1, '#030712');
     ctx.fillStyle = orbBg;
@@ -147,7 +154,7 @@ export class CrystalBallRenderer {
     ctx.globalAlpha = 1.0;
 
     // Draw Internal Glow at Core
-    const coreGlow = ctx.createRadialGradient(cx, cy + radius * 0.2, 5, cx, cy + radius * 0.2, radius * 0.9);
+    const coreGlow = ctx.createRadialGradient(cx, cy + radius * 0.2, 5, cx, cy + radius * 0.2, Math.max(10, radius * 0.9));
     coreGlow.addColorStop(0, this.glowColor);
     coreGlow.addColorStop(1, 'transparent');
     ctx.fillStyle = coreGlow;
@@ -155,7 +162,7 @@ export class CrystalBallRenderer {
     ctx.fill();
     ctx.globalAlpha = 1.0;
 
-    // Glass Orb Reflections & Rim Light
+    // Glass Orb Reflections
     this.drawGlassHighlights(ctx, cx, cy, radius);
 
     ctx.restore();
@@ -169,6 +176,7 @@ export class CrystalBallRenderer {
   }
 
   private drawAura(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+    if (r <= 0) return;
     ctx.save();
     const aura = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.25);
     aura.addColorStop(0, this.glowColor);
@@ -186,7 +194,6 @@ export class CrystalBallRenderer {
     const pw = 70;
     const ph = 12;
 
-    // Metallic / Obsidian Stand
     const grad = ctx.createLinearGradient(cx - pw / 2, bottomY, cx + pw / 2, bottomY);
     grad.addColorStop(0, '#1e293b');
     grad.addColorStop(0.5, '#475569');
@@ -214,7 +221,6 @@ export class CrystalBallRenderer {
 
     ctx.save();
 
-    // Liquid Body Gradient
     const liquidGrad = ctx.createLinearGradient(cx, baseLevel, cx, cy + r);
     liquidGrad.addColorStop(0, this.topColor);
     liquidGrad.addColorStop(1, this.bottomColor);
@@ -223,7 +229,6 @@ export class CrystalBallRenderer {
     ctx.beginPath();
     ctx.moveTo(cx - r - 10, cy + r + 10);
 
-    // Sine Wave Surface
     const segments = 30;
     const startX = cx - r - 10;
     const endX = cx + r + 10;
@@ -241,7 +246,6 @@ export class CrystalBallRenderer {
     ctx.closePath();
     ctx.fill();
 
-    // Top Wave Crest Highlight Line
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -250,9 +254,9 @@ export class CrystalBallRenderer {
   }
 
   private drawGlassHighlights(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+    if (r <= 0) return;
     ctx.save();
 
-    // Top-left primary crescent reflection
     const hlGrad = ctx.createLinearGradient(cx - r * 0.7, cy - r * 0.7, cx, cy);
     hlGrad.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
     hlGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
@@ -260,14 +264,13 @@ export class CrystalBallRenderer {
 
     ctx.fillStyle = hlGrad;
     ctx.beginPath();
-    ctx.ellipse(cx - r * 0.35, cy - r * 0.4, r * 0.25, r * 0.12, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(cx - r * 0.35, cy - r * 0.4, Math.max(1, r * 0.25), Math.max(1, r * 0.12), -Math.PI / 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bottom-right rim reflection
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.92, Math.PI * 0.15, Math.PI * 0.45);
+    ctx.arc(cx, cy, Math.max(1, r * 0.92), Math.PI * 0.15, Math.PI * 0.45);
     ctx.stroke();
 
     ctx.restore();
